@@ -4,6 +4,6 @@ TensorFlow / Keras
 
 Flask
 
-NumPy
+NLTK / scikit-learn
 
-OpenCV (for image preprocessing)
+Pandas
