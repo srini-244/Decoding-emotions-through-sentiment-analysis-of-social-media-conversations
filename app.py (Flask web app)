@@ -1,30 +1,34 @@
-from flask import Flask, render_template, request
-import numpy as np
-import cv2
+from flask import Flask, request
 import tensorflow as tf
-from tensorflow.keras.models import load_model
-import os
+import numpy as np
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+import pickle
 
 app = Flask(__name__)
-model = load_model('digit_model.h5')
+
+model = tf.keras.models.load_model('emotion_model.h5')
+word_index = np.load('tokenizer.npy', allow_pickle=True).item()
+classes = np.load('labels.npy', allow_pickle=True)
 
 @app.route('/')
-def index():
+def home():
     return '''
-    <form method="POST" action="/predict" enctype="multipart/form-data">
-      <input type="file" name="file">
+    <form action="/predict" method="post">
+      Enter text: <input type="text" name="text">
       <input type="submit">
     </form>
     '''
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    file = request.files['file']
-    image = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_GRAYSCALE)
-    image = cv2.resize(image, (28, 28))
-    image = image.reshape(1, 28, 28, 1) / 255.0
-    prediction = model.predict(image)
-    return f"Predicted Digit: {np.argmax(prediction)}"
+    text = request.form['text']
+    tokenizer = tf.keras.preprocessing.text.Tokenizer()
+    tokenizer.word_index = word_index
+    seq = tokenizer.texts_to_sequences([text])
+    padded = pad_sequences(seq, maxlen=100)
+    pred = model.predict(padded)
+    emotion = classes[np.argmax(pred)]
+    return f"Predicted Emotion: {emotion}"
 
 if __name__ == '__main__':
     app.run(debug=True)
